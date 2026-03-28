@@ -42,6 +42,14 @@ function isCookieAccessError(stderr: string): boolean {
 }
 
 async function runYtDlp(url: string, outputTemplate: string, useCookies: boolean): Promise<string> {
+  const binaryCandidates = [
+    config.ytDlpPath,
+    "./bin/yt-dlp",
+    "/opt/render/project/src/bin/yt-dlp",
+    "/opt/render/.local/bin/yt-dlp",
+    "yt-dlp"
+  ];
+
   const args = [
     "--no-playlist",
     "--no-warnings",
@@ -67,69 +75,87 @@ async function runYtDlp(url: string, outputTemplate: string, useCookies: boolean
     args.unshift("--cookies-from-browser");
   }
 
-  return await new Promise<string>((resolve, reject) => {
-    const child = spawn(config.ytDlpPath, args, {
-      stdio: ["ignore", "pipe", "pipe"]
-    });
+  let lastError: unknown;
 
-    let stdout = "";
-    let stderr = "";
-    let timedOut = false;
+  for (const binaryPath of binaryCandidates) {
+    if (!binaryPath) {
+      continue;
+    }
 
-    const timer = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGKILL");
-    }, config.downloadTimeoutMs);
+    try {
+      return await new Promise<string>((resolve, reject) => {
+        const child = spawn(binaryPath, args, {
+          stdio: ["ignore", "pipe", "pipe"]
+        });
 
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString("utf8");
-    });
+        let stdout = "";
+        let stderr = "";
+        let timedOut = false;
 
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString("utf8");
-    });
+        const timer = setTimeout(() => {
+          timedOut = true;
+          child.kill("SIGKILL");
+        }, config.downloadTimeoutMs);
 
-    child.once("error", (error: NodeJS.ErrnoException) => {
-      clearTimeout(timer);
-      if (error.code === "ENOENT") {
-        reject(new DependencyMissingError("yt-dlp is not installed"));
-        return;
+        child.stdout.on("data", (chunk: Buffer) => {
+          stdout += chunk.toString("utf8");
+        });
+
+        child.stderr.on("data", (chunk: Buffer) => {
+          stderr += chunk.toString("utf8");
+        });
+
+        child.once("error", (error: NodeJS.ErrnoException) => {
+          clearTimeout(timer);
+          reject(error);
+        });
+
+        child.once("close", (code) => {
+          clearTimeout(timer);
+
+          if (timedOut) {
+            reject(new TimeoutError("Request timed out"));
+            return;
+          }
+
+          if (code !== 0) {
+            if (isFileTooLargeError(stderr)) {
+              reject(new FileTooLargeError("File is too large for Telegram"));
+              return;
+            }
+
+            reject(new YtDlpExecutionError("yt-dlp execution failed", stderr));
+            return;
+          }
+
+          const lines = stdout
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean);
+
+          const filePath = lines.at(-1);
+          if (!filePath) {
+            reject(new UnsupportedSourceError("Source is not supported"));
+            return;
+          }
+
+          resolve(filePath);
+        });
+      });
+    } catch (error) {
+      lastError = error;
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        continue;
       }
-      reject(new UnsupportedSourceError("Source is not supported"));
-    });
+      throw error;
+    }
+  }
 
-    child.once("close", (code) => {
-      clearTimeout(timer);
+  if ((lastError as NodeJS.ErrnoException | undefined)?.code === "ENOENT") {
+    throw new DependencyMissingError("yt-dlp is not installed");
+  }
 
-      if (timedOut) {
-        reject(new TimeoutError("Request timed out"));
-        return;
-      }
-
-      if (code !== 0) {
-        if (isFileTooLargeError(stderr)) {
-          reject(new FileTooLargeError("File is too large for Telegram"));
-          return;
-        }
-
-        reject(new YtDlpExecutionError("yt-dlp execution failed", stderr));
-        return;
-      }
-
-      const lines = stdout
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      const filePath = lines.at(-1);
-      if (!filePath) {
-        reject(new UnsupportedSourceError("Source is not supported"));
-        return;
-      }
-
-      resolve(filePath);
-    });
-  });
+  throw new UnsupportedSourceError("Source is not supported");
 }
 
 export async function downloadTikTokVideo(url: URL, prefix: string): Promise<TikTokDownloadResult> {
