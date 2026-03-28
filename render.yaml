@@ -38,4 +38,4 @@ services:
       - key: OVERLAY_PATH
         value: "assets/shorts-overlay.png"
       - key: PROCESS_TIMEOUT_MS
-        value: "60000"
+        value: "180000"
