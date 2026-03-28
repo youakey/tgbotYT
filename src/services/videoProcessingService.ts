@@ -60,6 +60,8 @@ export async function processVideo(
     "0:a?",
     "-c:v",
     "libx264",
+    "-threads",
+    "1",
     "-crf",
     "20",
     "-preset",

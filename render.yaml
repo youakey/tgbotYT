@@ -20,7 +20,7 @@ services:
       - key: TEMP_DIR
         value: "./tmp"
       - key: MAX_CONCURRENT
-        value: "2"
+        value: "1"
       - key: DOWNLOAD_TIMEOUT_MS
         value: "60000"
       - key: MAX_REDIRECTS
