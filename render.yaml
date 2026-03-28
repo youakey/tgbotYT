@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: tgbot-backend
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ENABLE_POLLING
+        value: "false"
+      - key: BACKEND_API_KEY
+        sync: false
+      - key: MAX_FILE_SIZE_MB
+        value: "50"
+      - key: TEMP_DIR
+        value: "./tmp"
+      - key: MAX_CONCURRENT
+        value: "2"
+      - key: DOWNLOAD_TIMEOUT_MS
+        value: "60000"
+      - key: MAX_REDIRECTS
+        value: "5"
+      - key: NETWORK_RETRY_COUNT
+        value: "1"
+      - key: REDIS_URL
+        value: ""
+      - key: YT_DLP_PATH
+        value: "yt-dlp"
+      - key: TIKTOK_COOKIES_FROM_BROWSER
+        value: ""
+      - key: FFMPEG_PATH
+        value: "ffmpeg"
+      - key: OVERLAY_PATH
+        value: "assets/shorts-overlay.png"
+      - key: PROCESS_TIMEOUT_MS
+        value: "60000"
