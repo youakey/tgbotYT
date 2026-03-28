@@ -137,7 +137,7 @@ For production deployment on servers, see [DEPLOYMENT.md](DEPLOYMENT.md) for com
 4. In Render dashboard, set required secrets:
   - BOT_TOKEN
   - BACKEND_API_KEY
-5. Keep `YT_DLP_PATH` as `/opt/render/.local/bin/yt-dlp` (set by blueprint) so TikTok downloads work.
+5. Keep `YT_DLP_PATH` as `./bin/yt-dlp` (set by blueprint) so TikTok downloads work.
 6. Wait for deployment and copy service URL, for example https://your-service.onrender.com.
 7. Verify health endpoint: https://your-service.onrender.com/health.
 8. In Worker project folder tgbot, set secrets:

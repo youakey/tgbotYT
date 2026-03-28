@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     rootDir: .
-    buildCommand: python3 -m pip install --user -U yt-dlp && npm install && npm run build
+    buildCommand: mkdir -p bin && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o bin/yt-dlp && chmod +x bin/yt-dlp && npm install && npm run build
     startCommand: npm run start
     autoDeploy: true
     healthCheckPath: /health
@@ -30,7 +30,7 @@ services:
       - key: REDIS_URL
         value: ""
       - key: YT_DLP_PATH
-        value: "/opt/render/.local/bin/yt-dlp"
+        value: "./bin/yt-dlp"
       - key: TIKTOK_COOKIES_FROM_BROWSER
         value: ""
       - key: FFMPEG_PATH
